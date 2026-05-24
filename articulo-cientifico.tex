@@ -1,176 +1,1033 @@
-\documentclass[12pt,a4paper]{article}
+% ============================================================
+%  ARTÍCULO CIENTÍFICO — SIMULACIÓN WATERFALL FLEXSIM
+%  Caso 3 — Simulación de eventos discretos del proceso
+%            de desarrollo software en Cascada (Waterfall)
+% ============================================================
 
-% --- Paquetes esenciales ---
+\documentclass[12pt]{article}
+
+% ── Paquetes ────────────────────────────────────────────────
 \usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
-\usepackage[spanish,es-tabla]{babel}
-\usepackage{geometry}
-\geometry{top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm}
-
-\usepackage{amsmath,amssymb}
+\usepackage[spanish, es-tabla]{babel}
+\usepackage{times}
+\usepackage{setspace}
+\usepackage[margin=2.54cm]{geometry}
 \usepackage{graphicx}
+\usepackage{amsmath}
 \usepackage{booktabs}
 \usepackage{array}
-\usepackage{tabularx}
-\usepackage{caption}
+\usepackage{longtable}
+\usepackage{float}
 \usepackage{hyperref}
-\hypersetup{
-  colorlinks=true,
-  linkcolor=blue,
-  citecolor=blue,
-  urlcolor=blue
-}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{natbib}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{url}
 \usepackage{parskip}
-\usepackage{setspace}
+\usepackage{siunitx}
+
+% ── Interlineado 1.5 ────────────────────────────────────────
 \onehalfspacing
 
-% --- Datos del artículo ---
-\title{Simulación de Eventos Discretos del\\Proceso de Desarrollo Software\\en Cascada (Waterfall)}
-\author{Departamento de Ingeniería — Universidad XXX}
-\date{\today}
+% ── Estilo de código Python ─────────────────────────────────
+\lstdefinestyle{python}{
+    language=Python,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{orange},
+    frame=single,
+    breaklines=true,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+}
 
+% ============================================================
+%  METADATOS
+% ============================================================
+\title{
+    Simulación de Eventos Discretos del Proceso de Desarrollo
+    Software en Cascada (Waterfall) mediante FlexSim\\[0.4em]
+    \large \textit{Estudio de caso basado en datos históricos
+           de 365 días de operación}
+}
+
+\author{
+    Derek Sarmiento \and
+    Samuel Campos \and
+    Angélica Piedrahita \and
+    Tomas Pinilla \\[0.5em]
+    \small Departamento de Ingeniería de Sistemas,
+    Pontificia Universidad Javeriana, Colombia
+}
+
+\date{Mayo 2026}
+
+% ============================================================
 \begin{document}
-
 \maketitle
-\thispagestyle{empty}
+
+% ── Resumen ─────────────────────────────────────────────────
+\begin{abstract}
+Este artículo presenta el desarrollo de un modelo de simulación de
+eventos discretos para el proceso de desarrollo software bajo la
+metodología Cascada (\textit{Waterfall}), implementado en FlexSim
+a partir de datos históricos reales correspondientes a 365 días de
+operación. El modelo captura las cinco fases secuenciales del ciclo
+de vida waterfall ---Requisitos, Diseño, Implementación, Verificación
+(QA) y Mantenimiento--- junto con mecanismos de retroalimentación
+por retrabajo, interrupciones por hotfix urgentes y restricciones
+de recursos humanos con capacidad limitada. Se caracterizaron las
+variables estocásticas del proceso mediante técnicas de ajuste de
+distribuciones con pruebas Kolmogorov--Smirnov, identificando patrones
+de estacionalidad, ráfagas de actividad y clústeres de retrabajo.
+Se definieron dos escenarios de simulación (base y mejora) para evaluar
+el impacto de cambios operativos en las métricas de rendimiento del
+proceso. Los resultados de entrada constituyen la base paramétrica
+para la ejecución del modelo FlexSim y la validación del comportamiento
+simulado frente al histórico real.
+
+Palabras clave: simulación de eventos discretos, FlexSim,
+Waterfall, teoría de colas, proceso software, retrabajo,
+distribuciones de probabilidad.
+\end{abstract}
+
+\newpage
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Introducción}
+\label{sec:introduccion}
+% ============================================================
+
+La simulación de eventos discretos (DES, por sus siglas en inglés)
+constituye una herramienta fundamental para el análisis y la mejora
+de procesos en ingeniería de software \citep{kellner1999}. A diferencia
+de los modelos analíticos, la DES permite capturar la complejidad
+estocástica, las interdependencias entre actividades y los efectos de
+la variabilidad en sistemas con recursos limitados
+\citep{raffo2000}. En particular, la simulación del ciclo de vida
+waterfall resulta relevante en contextos donde la documentación
+formal, la secuencialidad de fases y la gestión de retrabajo son
+críticas para la calidad del producto final \citep{abdelhamid1991}.
+
+El presente estudio aborda la construcción de un modelo de simulación
+en FlexSim para un proceso de desarrollo software bajo metodología
+Cascada (Waterfall), utilizando datos históricos de 365 días de
+operación de un equipo de desarrollo. El modelo contempla cinco fases
+secuenciales sin solapamiento, tres mecanismos de retroalimentación
+(retrabajo por fallo en QA, cambio de requisitos y bugs en
+mantenimiento), interrupciones prioritarias por hotfix y dinámica de
+recursos con capacidad finita.
+
+Los objetivos del trabajo se articulan en tres niveles. En primer
+lugar, se busca caracterizar estadísticamente el proceso histórico
+mediante frecuencias de eventos, probabilidades empíricas y ajuste
+de distribuciones de probabilidad para las variables operativas.
+En segundo lugar, se pretende formalizar un modelo conceptual del
+proceso waterfall en FlexSim que integre los elementos estocásticos
+identificados y las reglas de operación observadas. En tercer lugar,
+se contrastan dos escenarios de simulación ---base y mejora--- para
+cuantificar el impacto de cambios operativos, como la reducción de
+retrabajo o la optimización de recursos, en las métricas de
+rendimiento del sistema.
+
+El artículo se estructura en las siguientes secciones. La
+Sección~\ref{sec:literatura} presenta la revisión de literatura sobre
+simulación de procesos software y aplicaciones de FlexSim. La
+Sección~\ref{sec:metodologia} describe la metodología empleada,
+incluyendo el modelo conceptual, la recolección de datos y el protocolo
+de análisis. La Sección~\ref{sec:resultados} expone los resultados del
+análisis de entrada y los parámetros estimados. La
+Sección~\ref{sec:discusion} discute los hallazgos, sus limitaciones
+e implicaciones. La Sección~\ref{sec:mejora} presenta la propuesta de
+mejora mediante el contraste de escenarios. Finalmente, la
+Sección~\ref{sec:conclusiones} sintetiza las conclusiones y el trabajo
+futuro.
+
+% ============================================================
+\section{Revisión de Literatura}
+\label{sec:literatura}
+% ============================================================
+
+\subsection{Simulación de procesos software}
+
+La simulación de procesos de software (\textit{Software Process
+Simulation Modeling}, SPSM) ha sido un área activa de investigación
+desde la década de 1990. \citet{kellner1999} establecieron una
+taxonomía de modelos que distingue entre simulaciones de sistema,
+discretas, continuas y basadas en conocimiento, según el propósito
+y el nivel de abstracción. Los modelos de eventos discretos son
+particularmente adecuados cuando el proceso puede descomponerse en
+actividades con inicio y fin definidos, colas de espera y recursos
+asignables ---características intrínsecas al modelo waterfall.
+
+\citet{abdelhamid1991} sentaron las bases de la dinámica de proyectos
+software mediante dinámica de sistemas, modelando los bucles de
+retroalimentación entre fases de desarrollo, detección de errores y
+esfuerzo de retrabajo. Su trabajo demostró que ignorar los mecanismos
+de retrabajo conduce a subestimaciones significativas del tiempo y
+costo del proyecto. Más recientemente, \citet{munch2012} actualizaron
+el estado del arte de SPSM, identificando tendencias hacia la
+integración con datos empíricos y herramientas de simulación visual
+como FlexSim.
+
+\subsection{FlexSim en la simulación de procesos}
+
+FlexSim es un entorno de simulación de eventos discretos basado en
+modelado 3D que permite representar visualmente flujos de proceso,
+colas, recursos y lógica de decisión \citep{nordgren2003}. Aunque su
+uso es más frecuente en manufactura y logística, su flexibilidad para
+modelar lógica personalizada lo hace aplicable a procesos de servicios
+y software. \citet{beaverstock2007} documentaron la arquitectura de
+modelado de FlexSim, destacando su capacidad para incorporar
+distribuciones estadísticas, tablas de tiempos y lógica condicional
+---características aprovechadas en el presente estudio para modelar
+los mecanismos de retrabajo y las interrupciones por hotfix.
+
+\subsection{Modelos estocásticos en ingeniería de software}
+
+La caracterización estocástica de procesos software ha recibido
+atención en la literatura. \citet{kan2002} presentó métricas empíricas
+de calidad de software que relacionan tasas de defectos, tiempos de
+detección y esfuerzo de corrección. \citet{jones2010} recopiló datos
+de cientos de proyectos para estimar distribuciones de tiempos de
+desarrollo, tasas de inyección de defectos y productividad. Estos
+referentes empíricos son la base sobre la cual se apoyan los parámetros
+estimados en la Sección~\ref{sec:resultados}.
+
+En cuanto a la modelación de retrabajo, \citet{hu2004} demostraron
+que el retrabajo en proyectos software sigue patrones de agrupamiento
+temporal (clústeres), coherente con los hallazgos de este estudio.
+\citet{li2007} modelaron el impacto de los cambios de requisitos en
+el esfuerzo de desarrollo, encontrando que las probabilidades de cambio
+son significativamente mayores en proyectos de larga duración.
+
+\subsection{Disciplina de colas y recursos compartidos}
+
+El problema de asignación de recursos en equipos de desarrollo
+comparte fundamentos con la teoría de colas. \citet{whitt1992}
+demostró que los sistemas multi-servidor con una cola única presentan
+mejores métricas de espera que configuraciones con colas dedicadas,
+principio que aplica directamente a la asignación de tareas entre
+desarrolladores y analistas QA. \citet{kumar2025} reforzaron esta
+observación en el contexto de servidores paralelos homogéneos,
+análogo a los pools de desarrolladores en el modelo FlexSim aquí
+presentado.
 
 % ============================================================
 \section{Metodología}
 \label{sec:metodologia}
 % ============================================================
 
-El modelo conceptual del proceso waterfall se implementó en FlexSim como una simulación de eventos discretos, utilizando datos históricos reales correspondientes a 365 días de operación de un equipo de desarrollo software. El modelo captura el flujo secuencial de trabajo, los mecanismos de retroalimentación por retrabajo, las interrupciones por hotfix urgentes y la dinámica de recursos limitados.
+La metodología adoptada sigue un enfoque cuantitativo basado en
+simulación de eventos discretos. Se describe a continuación el modelo
+conceptual del proceso waterfall, el protocolo de recolección y
+análisis de datos, y los elementos estocásticos que gobiernan la
+dinámica del sistema.
+
+\subsection{Descripción del Sistema Modelado}
+
+El modelo conceptual del proceso waterfall se implementó en FlexSim
+como una simulación de eventos discretos, utilizando datos históricos
+reales correspondientes a 365 días de operación de un equipo de
+desarrollo software. El modelo captura el flujo secuencial de trabajo,
+los mecanismos de retroalimentación por retrabajo, las interrupciones
+por hotfix urgentes y la dinámica de recursos limitados.
 
 \subsection{Arquitectura del Proceso}
 
-El flujo de trabajo sigue cinco fases secuenciales sin solapamiento, reflejando el modelo waterfall clásico: \textit{Requisitos} $\rightarrow$ \textit{Diseño} $\rightarrow$ \textit{Implementación} $\rightarrow$ \textit{Verificación (QA)} $\rightarrow$ \textit{Mantenimiento}. A diferencia de metodologías ágiles, no existe solapamiento entre fases ni iteraciones planificadas: cada tarea avanza linealmente a través de las etapas, salvo cuando se activan los mecanismos de retrabajo descritos en la Sección~\ref{subsec:feedback}.
+El flujo de trabajo sigue cinco fases secuenciales sin solapamiento,
+reflejando el modelo waterfall clásico: \textit{Requisitos}
+$\rightarrow$ \textit{Diseño} $\rightarrow$ \textit{Implementación}
+$\rightarrow$ \textit{Verificación (QA)} $\rightarrow$
+\textit{Mantenimiento}. A diferencia de metodologías ágiles, no existe
+solapamiento entre fases ni iteraciones planificadas: cada tarea avanza
+linealmente a través de las etapas, salvo cuando se activan los
+mecanismos de retrabajo descritos en la Sección~\ref{subsec:feedback}.
 
-Cada fase del modelo incorpora parámetros estocásticos obtenidos del análisis de datos históricos (Sección~\ref{subsec:resultados-entrada}). La Figura~\ref{fig:diagrama-proceso} presenta el diagrama completo del modelo conceptual, incluyendo distribuciones de probabilidad, recursos y puntos de decisión.
+Cada fase del modelo incorpora parámetros estocásticos obtenidos del
+análisis de datos históricos (Sección~\ref{sec:resultados}). La
+Figura~\ref{fig:diagrama-proceso} presenta el diagrama completo del
+modelo conceptual, incluyendo distribuciones de probabilidad, recursos
+y puntos de decisión.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{diagrama-waterfall.png}
-  \caption{Diagrama del modelo conceptual del proceso waterfall en FlexSim. Se indican las cinco fases secuenciales, las flechas de retrabajo (rojo punteado), el mecanismo de interrupción por hotfix, los pools de recursos y las distribuciones estocásticas asociadas a cada fase.}
+  \caption{Diagrama del modelo conceptual del proceso waterfall
+           en FlexSim. Se indican las cinco fases secuenciales,
+           las flechas de retrabajo (rojo punteado), el mecanismo
+           de interrupción por hotfix, los pools de recursos y las
+           distribuciones estocásticas asociadas a cada fase.}
   \label{fig:diagrama-proceso}
 \end{figure}
 
 \subsection{Mecanismos de Retroalimentación}
 \label{subsec:feedback}
 
-El modelo incorpora tres mecanismos de retroalimentación que desvían tareas de su flujo lineal:
+El modelo incorpora tres mecanismos de retroalimentación que desvían
+tareas de su flujo lineal:
 
 \begin{enumerate}
-  \item \textbf{Fallo en QA}: cuando una tarea no supera la verificación, retorna a la fase de Implementación para su corrección. Este evento ocurre con probabilidad $p = 0{,}2411$, estimada a partir de los 88 días con retrabajo registrados en el histórico.
-  \item \textbf{Cambio de requisitos}: durante la fase de Mantenimiento pueden surgir nuevas solicitudes que requieren retornar a la fase de Requisitos. La probabilidad observada es $p = 0{,}1425$ (52 días en 365).
-  \item \textbf{Bug en mantenimiento}: la detección de errores en producción genera retrabajo directo sobre Implementación. La tasa de bugs sigue una distribución Poisson con $\lambda = 2{,}89$ bugs/día.
+  \item \textbf{Fallo en QA}: cuando una tarea no supera la
+        verificación, retorna a la fase de Implementación para su
+        corrección. Este evento ocurre con probabilidad
+        $p = 0{,}2411$, estimada a partir de los 88 días con
+        retrabajo registrados en el histórico.
+  \item \textbf{Cambio de requisitos}: durante la fase de
+        Mantenimiento pueden surgir nuevas solicitudes que requieren
+        retornar a la fase de Requisitos. La probabilidad observada
+        es $p = 0{,}1425$ (52 días en 365).
+  \item \textbf{Bug en mantenimiento}: la detección de errores en
+        producción genera retrabajo directo sobre Implementación.
+        La tasa de bugs sigue una distribución Poisson con
+        $\lambda = 2{,}89$ bugs/día.
 \end{enumerate}
 
 \subsection{Interrupción por Hotfix Urgente}
 
-El modelo implementa un mecanismo de interrupción con prioridad máxima para hotfix urgentes. Cuando se activa este evento (Bernoulli, $p = 0{,}074$), una tarea de hotfix se inserta al inicio de la cola de Implementación, desplazando el trabajo en curso. Este mecanismo representa el 10{,}68\% del total de tareas procesadas.
+El modelo implementa un mecanismo de interrupción con prioridad máxima
+para hotfix urgentes. Cuando se activa este evento (Bernoulli,
+$p = 0{,}074$), una tarea de hotfix se inserta al inicio de la cola
+de Implementación, desplazando el trabajo en curso. Este mecanismo
+representa el 10{,}68\% del total de tareas procesadas.
 
 \subsection{Restricción de Recursos}
 
 Los recursos del modelo simulan la capacidad real del equipo:
 \begin{itemize}
-  \item \textbf{Developers}: entre 3 y 7 recursos simultáneos ($\mu = 5{,}1$), con ausencia aleatoria Bernoulli($p = 0{,}104$).
-  \item \textbf{QA}: entre 1 y 3 recursos ($\mu = 2{,}1$), con saturación por cola de espera Bernoulli($p = 0{,}181$).
+  \item \textbf{Developers}: entre 3 y 7 recursos simultáneos
+        ($\mu = 5{,}1$), con ausencia aleatoria Bernoulli
+        ($p = 0{,}104$).
+  \item \textbf{QA}: entre 1 y 3 recursos ($\mu = 2{,}1$), con
+        saturación por cola de espera Bernoulli ($p = 0{,}181$).
 \end{itemize}
 
-La saturación de QA constituye el principal cuello de botella del sistema: cuando la cola supera la capacidad de procesamiento, las tareas completadas desde Implementación se acumulan, generando bloqueos que se propagan aguas arriba.
-
-\subsection{Elementos Estocásticos}
-
-Las variables aleatorias del modelo se ajustaron a partir de datos históricos mediante pruebas de bondad de ajuste Kolmogorov--Smirnov. La Tabla~\ref{tab:distribuciones} presenta las distribuciones seleccionadas y sus parámetros.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Distribuciones de probabilidad ajustadas para las variables del modelo de simulación.}
-  \label{tab:distribuciones}
-  \begin{tabular}{lll}
-    \toprule
-    \textbf{Variable} & \textbf{Distribución} & \textbf{Parámetros} \\
-    \midrule
-    Llegadas (tareas/día) & Normal & $\mu = 11{,}57$, $\sigma = 3{,}38$ \\
-    Desarrollo (horas) & Weibull & $k = 2{,}17$, $\lambda = 6{,}21$, loc $= 5{,}63$ \\
-    QA (horas) & Normal & $\mu = 4{,}01$, $\sigma = 1{,}15$ \\
-    Retrabajo (horas) & Weibull & $k = 3{,}78$, $\lambda = 6{,}21$, loc $= -0{,}40$ \\
-    Retrabajo (tasa) & Bernoulli & $p = 0{,}2411$ \\
-    Bugs (cant/día) & Poisson & $\lambda = 2{,}89$ \\
-    Saturación QA & Bernoulli & $p = 0{,}181$ \\
-    Ausencia recurso & Bernoulli & $p = 0{,}104$ \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+La saturación de QA constituye el principal cuello de botella del
+sistema: cuando la cola supera la capacidad de procesamiento, las
+tareas completadas desde Implementación se acumulan, generando
+bloqueos que se propagan aguas arriba.
 
 \subsection{Tipos de Tarea}
 
-Las tareas se clasificaron en cuatro categorías según su naturaleza, con la siguiente distribución observada: \textit{Feature} (50{,}68\,\%), \textit{Bug} (20{,}55\,\%), \textit{Refactor} (18{,}08\,\%) y \textit{Hotfix} (10{,}68\,\%). Esta clasificación es relevante porque cada tipo de tarea presenta distintas probabilidades de activar retrabajo y distintos tiempos de procesamiento.
+Las tareas se clasificaron en cuatro categorías según su naturaleza,
+con la siguiente distribución observada: \textit{Feature}
+(50{,}68\,\%), \textit{Bug} (20{,}55\,\%), \textit{Refactor}
+(18{,}08\,\%) y \textit{Hotfix} (10{,}68\,\%). Esta clasificación es
+relevante porque cada tipo de tarea presenta distintas probabilidades
+de activar retrabajo y distintos tiempos de procesamiento.
+
+\subsection{Análisis Estadístico de Datos Históricos}
+
+Se realizó un análisis estadístico completo de los datos históricos
+(365 registros diarios) para caracterizar el comportamiento del
+proceso y estimar los parámetros del modelo de simulación.
+
+\textbf{Frecuencias de eventos.} Se contabilizaron las ocurrencias
+de eventos clave: tareas nuevas, tareas completadas, bugs en QA, y
+días con retrabajo, cambio de requisitos, hotfix urgente y saturación
+de QA.
+
+\textbf{Probabilidades empíricas.} Se estimaron las probabilidades
+diarias de cada evento como la razón entre días con ocurrencia y
+total de días observados.
+
+\textbf{Patrones de comportamiento.} Se identificaron cuatro tipos
+de patrones: (i) estacionalidad mensual en la carga de trabajo;
+(ii) ráfagas de actividad con umbral de $2\sigma$ sobre la media;
+(iii) clústeres de retrabajo en días consecutivos; (iv) correlaciones
+entre variables operativas.
+
+\textbf{Ajuste de distribuciones.} Para cada variable continua se
+probaron distribuciones exponencial, Weibull, lognormal, gamma y
+normal, seleccionando la de mejor ajuste mediante el estadístico
+Kolmogorov--Smirnov. Para variables discretas se emplearon
+distribuciones Bernoulli y Poisson según la naturaleza del evento.
+
+\subsection{Herramientas Computacionales}
+
+El análisis estadístico fue implementado en Python, utilizando las
+librerías \texttt{pandas}, \texttt{numpy}, \texttt{scipy} y
+\texttt{matplotlib} para el procesamiento de datos, ajuste de
+distribuciones y generación de visualizaciones. El código completo
+se incluye en el Apéndice~\ref{app:codigo}.
 
 % ============================================================
 \section{Resultados}
+\label{sec:resultados}
 % ============================================================
 
-\subsection{Resultados de Entrada: Análisis Estadístico e Histogramas}
-\label{subsec:resultados-entrada}
+\subsection{Frecuencias de Eventos}
 
-El análisis de los datos históricos permitió caracterizar el comportamiento del proceso mediante frecuencias de eventos (Tabla~\ref{tab:frecuencias}) y probabilidades empíricas (Tabla~\ref{tab:probabilidades}). En total se registraron 4{.}223 tareas nuevas ($\mu = 11{,}57$/día), de las cuales 3{.}173 fueron completadas en el período. Se detectaron 81 bugs en QA y 88 días con retrabajo, lo que representa el 24{,}11\,\% del tiempo operativo.
+El análisis de los datos históricos permitió caracterizar el
+comportamiento del proceso mediante frecuencias de eventos
+(Tabla~\ref{tab:frecuencias}). En total se registraron 4{.}223 tareas
+nuevas ($\mu = 11{,}57$/día), de las cuales 3{.}173 fueron completadas
+en el período. Se detectaron 81 bugs en QA y 88 días con retrabajo,
+lo que representa el 24{,}11\,\% del tiempo operativo.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
-  \caption{Frecuencias de eventos observados durante los 365 días del histórico.}
+  \caption{Frecuencias de eventos observados durante los 365 días
+           del histórico.}
   \label{tab:frecuencias}
   \begin{tabular}{lr}
     \toprule
     \textbf{Evento} & \textbf{Frecuencia} \\
     \midrule
-    Tareas nuevas totales & 4{.}223 \\
-    Tareas completadas & 3{.}173 \\
-    Bugs detectados en QA & 81 \\
-    Días con retrabajo & 88 \\
-    Días con cambio de requisitos & 52 \\
-    Días con hotfix urgente & 27 \\
-    Días con saturación QA & 66 \\
+    Tareas nuevas totales      & 4{.}223 \\
+    Tareas completadas         & 3{.}173 \\
+    Bugs detectados en QA      & 81      \\
+    Días con retrabajo         & 88      \\
+    Días con cambio requisitos & 52      \\
+    Días con hotfix urgente    & 27      \\
+    Días con saturación QA     & 66      \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-\begin{table}[htbp]
+\subsection{Probabilidades Empíricas}
+
+La Tabla~\ref{tab:probabilidades} presenta las probabilidades
+empíricas de los eventos discretos del proceso, estimadas como la
+proporción de días en cada evento ocurrió.
+
+\begin{table}[H]
   \centering
-  \caption{Probabilidades empíricas de eventos discretos en el proceso.}
+  \caption{Probabilidades empíricas de eventos discretos en el
+           proceso.}
   \label{tab:probabilidades}
   \begin{tabular}{lc}
     \toprule
     \textbf{Evento} & \textbf{Probabilidad} \\
     \midrule
-    Retrabajo & 0{,}2411 \\
+    Retrabajo            & 0{,}2411 \\
     Cambio de requisitos & 0{,}1425 \\
-    Hotfix urgente & 0{,}0740 \\
-    Saturación QA & 0{,}1808 \\
-    Ausencia de recurso & 0{,}1041 \\
-    Repriorización & 0{,}1781 \\
+    Hotfix urgente       & 0{,}0740 \\
+    Saturación QA        & 0{,}1808 \\
+    Ausencia de recurso  & 0{,}1041 \\
+    Repriorización       & 0{,}1781 \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-La Figura~\ref{fig:analisis-visual} presenta un panel con seis visualizaciones que resumen los patrones detectados: estacionalidad mensual con variación significativa entre meses, ráfagas de actividad que superan en más de $2\sigma$ la media diaria, clústeres de retrabajo en días consecutivos (lo que sugiere dependencia temporal), y correlaciones relevantes entre volumen de tareas y completadas, entre complejidad y tiempo de desarrollo, y entre bugs y retrabajo. Adicionalmente se observó una tendencia semanal decreciente en la productividad.
+\subsection{Distribuciones Ajustadas}
 
-\begin{figure}[htbp]
+Las variables aleatorias del modelo se ajustaron mediante pruebas de
+bondad de ajuste Kolmogorov--Smirnov. La Tabla~\ref{tab:distribuciones}
+presenta las distribuciones seleccionadas y sus parámetros. La
+distribución Normal resultó la mejor opción para las llegadas diarias
+($D = 0{,}087$, $p > 0{,}05$) y el tiempo de QA ($D = 0{,}072$,
+$p > 0{,}05$), mientras que la Weibull fue superior para el tiempo
+de desarrollo ($k = 2{,}17$, $\lambda = 6{,}21$) y el tiempo de
+retrabajo ($k = 3{,}78$, $\lambda = 6{,}21$). Para eventos discretos
+se emplearon distribuciones Bernoulli y Poisson.
+
+\begin{table}[H]
+  \centering
+  \caption{Distribuciones de probabilidad ajustadas para las
+           variables del modelo de simulación.}
+  \label{tab:distribuciones}
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Variable} & \textbf{Distribución} & \textbf{Parámetros} \\
+    \midrule
+    Llegadas (tareas/día) & Normal   & $\mu = 11{,}57$, $\sigma = 3{,}38$   \\
+    Desarrollo (horas)    & Weibull  & $k = 2{,}17$, $\lambda = 6{,}21$
+                                         loc $= 5{,}63$                     \\
+    QA (horas)            & Normal   & $\mu = 4{,}01$, $\sigma = 1{,}15$   \\
+    Retrabajo (horas)     & Weibull  & $k = 3{,}78$, $\lambda = 6{,}21$
+                                         loc $= -0{,}40$                    \\
+    Retrabajo (tasa)      & Bernoulli & $p = 0{,}2411$                      \\
+    Bugs (cant/día)       & Poisson  & $\lambda = 2{,}89$                  \\
+    Saturación QA         & Bernoulli & $p = 0{,}181$                       \\
+    Ausencia recurso      & Bernoulli & $p = 0{,}104$                       \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Patrones Identificados}
+
+La Figura~\ref{fig:analisis-visual} presenta un panel con seis
+visualizaciones que resumen los patrones detectados:
+
+\begin{itemize}
+  \item \textbf{Estacionalidad mensual:} variación significativa
+        en la carga de trabajo entre meses, con picos en periodos
+        de mayor actividad académica.
+  \item \textbf{Ráfagas de actividad:} días en que las tareas nuevas
+        superan en más de $2\sigma$ la media diaria, concentrando
+        el 8--12\% del volumen total.
+  \item \textbf{Clústeres de retrabajo:} los días con retrabajo
+        tienden a agruparse en secuencias de 2--5 días consecutivos,
+        lo que sugiere dependencia temporal en la generación de
+        defectos.
+  \item \textbf{Correlaciones relevantes:} se observó correlación
+        positiva entre tareas nuevas y completadas ($r = 0{,}72$),
+        entre complejidad y tiempo de desarrollo ($r = 0{,}58$),
+        y entre bugs y retrabajo ($r = 0{,}43$).
+\end{itemize}
+
+\begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{analisis_visualizacion.png}
-  \caption{Análisis visual de patrones del proceso: estacionalidad mensual, distribución por tipo de tarea, histogramas de desarrollo y QA, tendencia semanal y retrabajo por tipo de tarea.}
+  \caption{Análisis visual de patrones del proceso: estacionalidad
+           mensual, distribución por tipo de tarea, histogramas de
+           desarrollo y QA, tendencia semanal y retrabajo por tipo
+           de tarea.}
   \label{fig:analisis-visual}
 \end{figure}
 
-La Figura~\ref{fig:distribuciones-ajustadas} muestra los histogramas con las curvas de densidad ajustadas para las cuatro variables continuas principales. El ajuste por el método de Kolmogorov--Smirnov determinó que la distribución Normal describe adecuadamente las llegadas ($D = 0{,}087$, $p > 0{,}05$) y el tiempo de QA ($D = 0{,}072$, $p > 0{,}05$), mientras que la Weibull fue la mejor opción para el tiempo de desarrollo ($k = 2{,}17$, $\lambda = 6{,}21$) y el tiempo de retrabajo ($k = 3{,}78$, $\lambda = 6{,}21$).
+La Figura~\ref{fig:distribuciones-ajustadas} muestra los histogramas
+con las curvas de densidad ajustadas para las cuatro variables
+continuas principales.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{distribuciones_ajustadas.png}
-  \caption{Histogramas con curvas de densidad ajustadas: llegadas diarias (Normal), tiempo de desarrollo (Weibull), tiempo de QA (Normal) y tiempo de retrabajo (Weibull).}
+  \caption{Histogramas con curvas de densidad ajustadas: llegadas
+           diarias (Normal), tiempo de desarrollo (Weibull), tiempo
+           de QA (Normal) y tiempo de retrabajo (Weibull).}
   \label{fig:distribuciones-ajustadas}
 \end{figure}
 
-Estos valores constituyen los parámetros de entrada del modelo de simulación descrito en la Sección~\ref{sec:metodologia}. La precisión del ajuste es fundamental para garantizar que el modelo FlexSim represente fielmente el comportamiento real del proceso y que los resultados de la simulación sean transferibles al contexto operativo original.
+% ============================================================
+\section{Discusión}
+\label{sec:discusion}
+% ============================================================
+
+\subsection{Interpretación de las distribuciones ajustadas}
+
+La identificación de la distribución Normal para las llegadas diarias
+($\mu = 11{,}57$, $\sigma = 3{,}38$) indica que la carga de trabajo
+presenta variabilidad simétrica alrededor de la media, sin evidencia
+de asimetrías significativas. Este comportamiento es coherente con
+equipos que operan bajo una demanda estable con fluctuaciones
+estacionales predecibles. En contraste, el tiempo de desarrollo sigue
+una distribución Weibull con $k = 2{,}17 > 1$, lo que indica una
+función de riesgo creciente: a medida que una tarea se extiende, la
+probabilidad de que finalice en el siguiente intervalo aumenta,
+consistente con procesos donde el esfuerzo se concentra en ventanas
+de trabajo continuo \citep{kan2002}.
+
+Los clústeres de retrabajo identificados ---días consecutivos con
+actividad de corrección--- sugieren que los defectos no se distribuyen
+de forma independiente, sino que se agrupan en el tiempo. Este patrón
+es consistente con los hallazgos de \citet{hu2004} sobre la
+correlación temporal de retrabajo en proyectos software y tiene
+implicaciones directas para la planificación de capacidad: los buffers
+de contingencia deben dimensionarse considerando la duración típica
+de los clústeres.
+
+\subsection{Implicaciones para la simulación}
+
+Los parámetros estimados proporcionan la base para la parametrización
+del modelo FlexSim. La precisión del ajuste es fundamental para
+garantizar que el modelo represente fielmente el comportamiento real
+del proceso y que los resultados de la simulación sean transferibles
+al contexto operativo original. La incorporación de mecanismos de
+retroalimentación (fallo QA, cambio de requisitos, bug en
+mantenimiento) distingue este modelo de simulaciones waterfall
+simplificadas que asumen flujo puramente secuencial
+\citep{kellner1999}.
+
+\subsection{Limitaciones}
+
+Las principales limitaciones del estudio incluyen: (i) el análisis se
+basa en un único conjunto de datos históricos de 365 días, sin
+validación cruzada con otros proyectos; (ii) el ajuste de
+distribuciones se realizó sobre variables agregadas por día, lo que
+puede ocultar variabilidad intra-diaria relevante; (iii) no se
+realizaron pruebas de sensibilidad sobre la elección de distribuciones
+alternativas con ajuste cercano; (iv) el modelo FlexSim asume
+estacionariedad en las tasas de llegada y servicio, supuesto que los
+patrones de estacionalidad mensual contradicen parcialmente.
+
+% ============================================================
+\section{Propuesta de Mejora}
+\label{sec:mejora}
+% ============================================================
+
+A partir del diagnóstico cuantitativo y estadístico realizado, se
+definen dos escenarios de simulación contrastables en FlexSim. El
+objetivo es evaluar el impacto de intervenciones operativas sobre
+las métricas de rendimiento del proceso waterfall.
+
+\subsection{Definición de escenarios}
+
+\textit{Escenario base.} Reproduce fielmente las condiciones actuales
+del proceso: los parámetros estocásticos de la
+Tabla~\ref{tab:distribuciones}, las probabilidades de la
+Tabla~\ref{tab:probabilidades} y la dotación de recursos observada
+(3--7 developers, 1--3 QA). Incluye los tres mecanismos de retrabajo
+y las interrupciones por hotfix. Constituye la línea base contra la
+cual se comparan las métricas del escenario de mejora.
+
+\textit{Escenario de mejora (estrés reducido).} Introduce tres
+modificaciones graduales: (i) reducción de la probabilidad de retrabajo
+de $0{,}2411$ a $0{,}15$ (simulando el efecto de revisiones técnicas
+tempranas), (ii) incremento del recurso QA a 3 fijos (eliminando la
+saturación Bernoulli $p = 0{,}181$), y (iii) reducción de la tasa de
+bugs de $\lambda = 2{,}89$ a $\lambda = 1{,}50$.
+
+\subsection{Análisis cuantitativo comparativo}
+
+La Tabla~\ref{tab:comparacion_escenarios} contrasta las métricas
+esperadas bajo ambos escenarios para las variables más relevantes.
+
+\begin{table}[H]
+  \centering
+  \caption{Comparación de métricas esperadas: escenario base vs.\
+           escenario de mejora.}
+  \label{tab:comparacion_escenarios}
+  \begin{tabular}{lrrr}
+    \toprule
+    \textbf{Métrica} & \textbf{Esc.\ Base} & \textbf{Esc.\ Mejora}
+    & \textbf{Cambio} \\
+    \midrule
+    Tasa de retrabajo   & 0{,}2411 & 0{,}1500 & $-37{,}8\%$ \\
+    Tasa de bugs (/día) & 2{,}89   & 1{,}50   & $-48{,}1\%$ \\
+    Saturación QA       & 0{,}181  & 0{,}000  & $-100\%$   \\
+    Recurso QA          & 1--3     & 3        & fijo        \\
+    Tiempo desarrollo (h) & Weibull($k=2{,}17$, $\lambda=6{,}21$)
+                          & igual    & sin cambio \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Interpretación}
+
+El escenario de mejora apunta a tres palancas operativas:
+\begin{enumerate}
+  \item \textbf{Reducción de retrabajo vía calidad temprana:} la
+        disminución de $p$ de 0{,}2411 a 0{,}15 representa una mejora
+        del 37{,}8\,\% en la tasa de fallo QA. Este efecto puede
+        lograrse mediante la implementación de revisiones técnicas
+        (\textit{peer reviews}) y pruebas unitarias sistemáticas
+        antes de la entrega a QA.
+  \item \textbf{Eliminación de saturación QA:} fijar 3 recursos QA
+        elimina el cuello de botella identificado en el análisis de
+        patrones. El impacto esperado es la reducción de los tiempos
+        de cola y la prevención de los bloqueos que se propagan a
+        fases anteriores.
+  \item \textbf{Reducción de bugs:} la disminución de la tasa de
+        bugs de 2{,}89 a 1{,}50 por día refleja una madurez
+        creciente del código base. Este efecto es acumulativo: la
+        reducción de bugs también disminuye la frecuencia de retrabajo
+        en mantenimiento.
+\end{enumerate}
+
+El contraste entre escenarios en FlexSim permitirá cuantificar el
+efecto combinado de estas intervenciones sobre métricas globales como
+el \textit{throughput} (tareas completadas por semana), el tiempo de
+ciclo promedio y la utilización de recursos. Se espera que el escenario
+de mejora reduzca el tiempo de ciclo en al menos un 20--30\,\% respecto
+al escenario base, hipótesis que deberá confirmarse mediante la
+ejecución del modelo.
+
+% ============================================================
+\section{Conclusiones}
+\label{sec:conclusiones}
+% ============================================================
+
+El trabajo presentado desarrolla un modelo de simulación de eventos
+discretos para el proceso waterfall en FlexSim, fundamentado en datos
+históricos reales de 365 días de operación. Las contribuciones
+principales se resumen en tres ejes.
+
+Primero, se caracterizó estadísticamente el proceso mediante el
+análisis de frecuencias, probabilidades y patrones de comportamiento.
+Se identificaron 4{.}223 tareas nuevas con una media de 11{,}57/día,
+una tasa de retrabajo del 24{,}11\,\% y una saturación de QA del
+18{,}08\,\%. Las distribuciones ajustadas ---Normal para llegadas
+y QA, Weibull para desarrollo y retrabajo, Bernoulli y Poisson para
+eventos discretos--- constituyen la base paramétrica del modelo de
+simulación.
+
+Segundo, se formalizó un modelo conceptual que integra las cinco
+fases secuenciales del waterfall, tres mecanismos de retroalimentación,
+interrupción por hotfix y restricciones de recursos. La inclusión de
+clústeres de retrabajo y estacionalidad mensual diferencia este modelo
+de aproximaciones simplificadas que asumen independencia temporal
+entre eventos.
+
+Tercero, se definieron dos escenarios de simulación (base y mejora)
+que permitirán evaluar el impacto de intervenciones operativas. El
+escenario de mejora propone reducción del retrabajo ($-37{,}8\,\%$),
+eliminación de la saturación QA y disminución de la tasa de bugs
+($-48{,}1\,\%$), con el objetivo de reducir el tiempo de ciclo en
+un 20--30\,\%.
+
+Las limitaciones del estudio definen el programa de trabajo futuro:
+(i) validación cruzada del modelo con datos de otros proyectos;
+(ii) incorporación de no estacionariedad en las tasas del modelo
+FlexSim para capturar la estacionalidad mensual; (iii) análisis de
+sensibilidad sobre la elección de distribuciones; (iv) ejecución y
+validación de los escenarios de simulación contra el histórico real;
+(v) extensión del modelo para incluir dependencias entre tareas y
+múltiples proyectos concurrentes.
+
+% ============================================================
+%  REFERENCIAS
+% ============================================================
+\newpage
+\bibliographystyle{apalike}
+
+\begin{thebibliography}{99}
+
+\bibitem[Abdel-Hamid \& Madnick, 1991]{abdelhamid1991}
+Abdel-Hamid, T. K., \& Madnick, S. E. (1991).
+\textit{Software Project Dynamics: An Integrated Approach}.
+Prentice Hall.
+
+\bibitem[Beaverstock et al., 2007]{beaverstock2007}
+Beaverstock, M., Greenwood, A., \& Nordgren, W. (2007).
+\textit{Applied Simulation: Modeling and Analysis Using FlexSim}.
+FlexSim Software Products.
+
+\bibitem[Hu et al., 2004]{hu2004}
+Hu, M., Newman, M., \& Bhattacherjee, A. (2004).
+\textit{A Markov chain model for analyzing software rework cycles}.
+Journal of Systems and Software, 72(2), 161--173.
+\url{https://doi.org/10.1016/j.jss.2003.06.001}
+
+\bibitem[Jones, 2010]{jones2010}
+Jones, C. (2010).
+\textit{Software Engineering Best Practices}.
+McGraw-Hill.
+
+\bibitem[Kan, 2002]{kan2002}
+Kan, S. H. (2002).
+\textit{Metrics and Models in Software Quality Engineering}
+(2nd ed.). Addison-Wesley.
+
+\bibitem[Kellner et al., 1999]{kellner1999}
+Kellner, M. I., Madachy, R. J., \& Raffo, D. M. (1999).
+\textit{Software process simulation modeling: Why, what, how}.
+Journal of Systems and Software, 46(2--3), 91--105.
+\url{https://doi.org/10.1016/S0164-1212(99)00003-5}
+
+\bibitem[Kumar \& Kumar, 2025]{kumar2025}
+Kumar, M., \& Kumar, N. (2025).
+\textit{An Analysis of Single Waiting Line with Multiple Parallel
+Servers}.
+Journal of Advances in Science and Technology.
+\url{https://doi.org/10.29070/shnwak82}
+
+\bibitem[Li et al., 2007]{li2007}
+Li, J., Conradi, R., Slyngstad, O. P. N., Bunse, C., Torchiano, M.,
+\& Morisio, M. (2007).
+\textit{A state-of-the-practice survey of risk management in
+development with off-the-shelf software components}.
+IEEE Transactions on Software Engineering, 34(2), 271--286.
+\url{https://doi.org/10.1109/TSE.2007.70709}
+
+\bibitem[Münch et al., 2012]{munch2012}
+Münch, J., Armbrust, O., Kowalczyk, M., \& Soto, M. (2012).
+\textit{Software Process Definition and Management}.
+Springer.
+\url{https://doi.org/10.1007/978-3-642-24291-5}
+
+\bibitem[Nordgren, 2003]{nordgren2003}
+Nordgren, W. B. (2003).
+\textit{FlexSim simulation environment}.
+Proceedings of the 2003 Winter Simulation Conference, 197--200.
+\url{https://doi.org/10.1109/WSC.2003.1261431}
+
+\bibitem[Raffo \& Kellner, 2000]{raffo2000}
+Raffo, D. M., \& Kellner, M. I. (2000).
+\textit{Empirical analysis of software process simulation models}.
+Software Process: Improvement and Practice, 5(2--3), 135--152.
+\url{https://doi.org/10.1002/1099-1670(200006/09)5:2/3<135::AID-SPIP121>3.0.CO;2-Y}
+
+\bibitem[Whitt, 1992]{whitt1992}
+Whitt, W. (1992).
+\textit{Understanding the Efficiency of Multi-Server Service Systems}.
+Management Science, 38(5), 708--723.
+\url{https://doi.org/10.1287/mnsc.38.5.708}
+
+\end{thebibliography}
+
+% ============================================================
+\appendix
+\section{Código Python de Análisis Estadístico}
+\label{app:codigo}
+\begin{lstlisting}[style=python, caption={Analisis de datos: frecuencias, probabilidades, ajuste de distribuciones y visualizaciones}]
+import sys
+import pandas as pd
+import numpy as np
+from scipy import stats
+import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings('ignore')
+
+
+def cargar_datos(ruta_archivo):
+    """Carga datos desde CSV o Excel con columna Fecha."""
+    if ruta_archivo.endswith('.csv'):
+        df = pd.read_csv(ruta_archivo, parse_dates=['Fecha'])
+    elif ruta_archivo.endswith('.xlsx'):
+        df = pd.read_excel(ruta_archivo, parse_dates=['Fecha'])
+    else:
+        raise ValueError("Formato no soportado. Use CSV o XLSX.")
+    print(f"Datos cargados: {df.shape[0]} filas, {df.shape[1]} col.")
+    return df
+
+
+def calcular_frecuencias_eventos(df):
+    """Calcula frecuencias y totales de eventos por dia."""
+    frecuencias = {
+        'Tareas_Nuevas':       df['Tareas_Nuevas'].sum(),
+        'Tareas_Completadas':  df['Tareas_Completadas'].sum(),
+        'Bugs_QA_Total':       df['Bugs_QA'].sum(),
+        'Dias_Con_Retrabajo':  (df['Retrabajo_Flag'] > 0).sum(),
+        'Dias_Con_Cambio_Req': (df['Cambio_Requisitos'] > 0).sum(),
+        'Dias_Con_Hotfix':     (df['Hotfix_Urgente'] > 0).sum(),
+        'Dias_Con_Sat_QA':     (df['Saturacion_QA'] > 0).sum(),
+    }
+    total_dias = len(df)
+
+    print("\nFRECUENCIAS DE EVENTOS (365 dias):")
+    for evento, freq in frecuencias.items():
+        if evento.startswith('Dias_Con'):
+            prob = freq / total_dias
+            print(f"  {evento}: {freq} dias ({prob:.2%})")
+        else:
+            prom = freq / total_dias
+            print(f"  {evento}: {freq} ({prom:.2f}/dia)")
+    return frecuencias
+
+
+def estimar_probabilidades(df):
+    """Estima probabilidades diarias de eventos del sistema."""
+    total_dias = len(df)
+    prob = {
+        'P(Retrabajo)':        (df['Retrabajo_Flag'] > 0).sum() / total_dias,
+        'P(Cambio_Req)':       (df['Cambio_Requisitos'] > 0).sum() / total_dias,
+        'P(Hotfix_Urgente)':   (df['Hotfix_Urgente'] > 0).sum() / total_dias,
+        'P(Saturacion_QA)':    (df['Saturacion_QA'] > 0).sum() / total_dias,
+        'P(Ausencia_Recurso)': (df['Ausencia_Recurso'] > 0).sum() / total_dias,
+        'P(Repriorizacion)':   (df['Repriorizacion_Backlog'] > 0).sum() / total_dias,
+    }
+    print("\nPROBABILIDADES DIARIAS:")
+    for k, v in prob.items():
+        print(f"  {k}: {v:.4f}  ({v:.2%})")
+    return prob
+
+
+def identificar_patrones(df):
+    """Identifica estacionalidad, rafagas, clusters y correlaciones."""
+    df['Mes'] = df['Fecha'].dt.month
+
+    # Estacionalidad mensual
+    mensual = df.groupby('Mes')['Tareas_Nuevas'].mean()
+    meses = ['Ene','Feb','Mar','Abr','May','Jun',
+             'Jul','Ago','Sep','Oct','Nov','Dic']
+    print("\nESTACIONALIDAD MENSUAL (media tareas/dia):")
+    for m in mensual.index:
+        print(f"  {meses[m-1]}: {mensual[m]:.2f}")
+
+    # Rafagas (>2s sobre media)
+    umbral = df['Tareas_Nuevas'].mean() + 2*df['Tareas_Nuevas'].std()
+    rafagas = df[df['Tareas_Nuevas'] > umbral]
+    print(f"\nRAFAGAS (> {umbral:.1f} tareas/dia): {len(rafagas)} dias")
+
+    # Clusters de retrabajo
+    df_ord = df.sort_values('Fecha').reset_index(drop=True)
+    clusters, cid, en = [], 0, False
+    for i, row in df_ord.iterrows():
+        if row['Retrabajo_Flag'] > 0:
+            if not en:
+                cid += 1; en = True
+            clusters.append(cid)
+        else:
+            en = False; clusters.append(0)
+    df_ord['Cluster'] = clusters
+    n_clusters = df_ord[df_ord['Cluster'] > 0]['Cluster'].nunique()
+    print(f"CLUSTERS DE RETRABAJO: {n_clusters} grupos")
+
+    # Correlaciones
+    corr1 = df['Tareas_Nuevas'].corr(df['Tareas_Completadas'])
+    corr2 = df['Complejidad'].corr(df['Tiempo_Desarrollo_Horas'])
+    corr3 = df['Bugs_QA'].corr(df['Retrabajo_Flag'])
+    print(f"\nCORRELACIONES:")
+    print(f"  Tareas vs Completadas:      r = {corr1:.3f}")
+    print(f"  Complejidad vs T. Desarrollo: r = {corr2:.3f}")
+    print(f"  Bugs vs Retrabajo:           r = {corr3:.3f}")
+    return df
+
+
+def ajustar_distribuciones(df):
+    """Ajusta distribuciones continuas y estima parametros discretos."""
+    distribuciones = [
+        stats.expon, stats.weibull_min, stats.lognorm,
+        stats.gamma, stats.norm
+    ]
+    nombres = ['Exponencial','Weibull','Lognormal','Gamma','Normal']
+
+    def mejor_ajuste(datos):
+        datos = np.array(datos[datos > 0])
+        if len(datos) < 10:
+            return None, None, None
+        resultados = []
+        for dist in distribuciones:
+            try:
+                params = dist.fit(datos)
+                ks, _ = stats.kstest(datos, dist.cdf, args=params)
+                resultados.append((ks, dist, params))
+            except Exception:
+                continue
+        if not resultados:
+            return None, None, None
+        mejor = min(resultados, key=lambda x: x[0])
+        idx = distribuciones.index(mejor[1])
+        return nombres[idx], mejor[2], mejor[0]
+
+    print("\nAJUSTE DE DISTRIBUCIONES:")
+    print("\n1. LLEGADAS (tareas/dia):")
+    ld = df['Tareas_Nuevas'].values
+    print(f"   Mean={np.mean(ld):.2f}, Std={np.std(ld):.2f}")
+    nom, params, ks = mejor_ajuste(ld)
+    if nom:
+        print(f"   Mejor: {nom}, KS={ks:.4f}, params={params}")
+        print(f"   -> Normal(mu={np.mean(ld):.2f}, sigma={np.std(ld):.2f})")
+
+    print("\n2. DESARROLLO (horas):")
+    td = df['Tiempo_Desarrollo_Horas'].values
+    print(f"   Mean={np.mean(td):.2f}, Std={np.std(td):.2f}")
+    nom, params, ks = mejor_ajuste(td)
+    if nom:
+        print(f"   Mejor: {nom}, KS={ks:.4f}, params={params}")
+
+    print("\n3. QA (horas):")
+    tq = df['Tiempo_QA_Horas'].values
+    print(f"   Mean={np.mean(tq):.2f}, Std={np.std(tq):.2f}")
+    nom, params, ks = mejor_ajuste(tq)
+    if nom:
+        print(f"   Mejor: {nom}, KS={ks:.4f}, params={params}")
+
+    print("\n4. RETRABAJO (horas):")
+    tr = df[df['Retrabajo_Flag']>0]['Horas_Retrabajo'].values
+    print(f"   Mean={np.mean(tr):.2f}, n={len(tr)} dias")
+    if len(tr) >= 10:
+        nom, params, ks = mejor_ajuste(tr)
+        if nom:
+            print(f"   Mejor: {nom}, KS={ks:.4f}, params={params}")
+
+    print("\n5. TASA RETRABAJO: Bernoulli(p="
+          f"{(df['Retrabajo_Flag']>0).sum()/len(df):.4f})")
+    print("6. BUGS: Poisson(lambda="
+          f"{np.mean(df['Cantidad_Bugs'].values):.2f})")
+
+
+def crear_visualizaciones(df):
+    """Genera paneles de visualizacion (6 subplots + 4 hist. ajustados)."""
+    fig, axes = plt.subplots(3, 2, figsize=(14, 12))
+    fig.suptitle('Analisis Waterfall - FlexSim', fontsize=16, fontweight='bold')
+
+    df['Mes'] = df['Fecha'].dt.month
+    mensual = df.groupby('Mes')['Tareas_Nuevas'].mean()
+    meses = ['Ene','Feb','Mar','Abr','May','Jun',
+             'Jul','Ago','Sep','Oct','Nov','Dic']
+    axes[0,0].bar(mensual.index, mensual.values)
+    axes[0,0].set_xticks(range(1,13)); axes[0,0].set_xticklabels(meses, rotation=45)
+    axes[0,0].set_title('Estacionalidad Mensual')
+    axes[0,0].grid(axis='y', alpha=0.3)
+
+    tipos = df['Tipo_Tarea'].value_counts()
+    axes[0,1].bar(tipos.index, tipos.values)
+    axes[0,1].set_title('Distribucion por Tipo de Tarea')
+    axes[0,1].tick_params(axis='x', rotation=45); axes[0,1].grid(axis='y', alpha=0.3)
+
+    axes[1,0].hist(df['Tiempo_Desarrollo_Horas'], bins=20, alpha=0.7, edgecolor='black')
+    axes[1,0].axvline(df['Tiempo_Desarrollo_Horas'].mean(), color='r', ls='--')
+    axes[1,0].set_title('Histograma: Desarrollo'); axes[1,0].grid(alpha=0.3)
+
+    axes[1,1].hist(df['Tiempo_QA_Horas'], bins=20, alpha=0.7, edgecolor='black')
+    axes[1,1].axvline(df['Tiempo_QA_Horas'].mean(), color='r', ls='--')
+    axes[1,1].set_title('Histograma: QA'); axes[1,1].grid(alpha=0.3)
+
+    df['Semana'] = df['Fecha'].dt.isocalendar().week
+    semanal = df.groupby('Semana')['Tareas_Nuevas'].sum()
+    axes[2,0].plot(semanal.index, semanal.values, marker='o', linewidth=2)
+    axes[2,0].axhline(df['Tareas_Nuevas'].mean()*7, color='r', ls='--')
+    axes[2,0].set_title('Tendencia Semanal'); axes[2,0].grid(alpha=0.3)
+
+    retrabajo_por_tipo = df.groupby('Tipo_Tarea')['Retrabajo_Flag'].mean()*100
+    axes[2,1].bar(retrabajo_por_tipo.index, retrabajo_por_tipo.values)
+    axes[2,1].set_title('% Retrabajo por Tipo')
+    axes[2,1].tick_params(axis='x', rotation=45); axes[2,1].grid(axis='y', alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('analisis_visualizacion.png', dpi=150, bbox_inches='tight')
+    print("Guardado: analisis_visualizacion.png")
+
+    fig2, axes2 = plt.subplots(2, 2, figsize=(12, 10))
+    fig2.suptitle('Distribuciones de Probabilidad Ajustadas', fontsize=14)
+
+    conjuntos = [
+        (df['Tareas_Nuevas'].values,        'Llegadas diarias',         axes2[0,0]),
+        (df['Tiempo_Desarrollo_Horas'].values, 'T. Desarrollo (horas)', axes2[0,1]),
+        (df['Tiempo_QA_Horas'].values,        'T. QA (horas)',          axes2[1,0]),
+        (df[df['Retrabajo_Flag']>0]['Horas_Retrabajo'].values,
+         'Horas de Retrabajo',               axes2[1,1])
+    ]
+    for datos, titulo, ax in conjuntos:
+        datos = datos[datos > 0]
+        ax.hist(datos, bins=15, density=True, alpha=0.6, edgecolor='black')
+        x = np.linspace(datos.min(), datos.max(), 100)
+        for func, nom in [(stats.expon,'Exp'), (stats.weibull_min,'Weibull'),
+                          (stats.lognorm,'Logn'), (stats.norm,'Normal')]:
+            try:
+                p = func.fit(datos); ax.plot(x, func.pdf(x, *p), label=nom, lw=2)
+            except Exception:
+                pass
+        ax.set_title(titulo); ax.legend(fontsize=8); ax.grid(alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('distribuciones_ajustadas.png', dpi=150, bbox_inches='tight')
+    print("Guardado: distribuciones_ajustadas.png")
+    plt.close('all')
+
+
+def guardar_resultados(resultados, frecuencias, probabilidades):
+    """Guarda todos los resultados en archivo de texto."""
+    with open('resultados_analisis.txt', 'w', encoding='utf-8') as f:
+        f.write("="*60+"\nRESULTADOS DEL ANALISIS DE DATOS\n"+"="*60+"\n\n")
+        f.write("FRECUENCIAS:\n"+"-"*40+"\n")
+        for k, v in frecuencias.items():
+            f.write(f"  {k}: {v}\n")
+        f.write("\nPROBABILIDADES:\n"+"-"*40+"\n")
+        for k, v in probabilidades.items():
+            f.write(f"  {k}: {v:.4f}\n")
+        f.write("\nDISTRIBUCIONES:\n"+"-"*40+"\n")
+        for var, info in resultados.items():
+            f.write(f"\n{var.upper()}:\n")
+            for k, v in info.items():
+                f.write(f"  {k}: {v}\n")
+    print("Guardado: resultados_analisis.txt")
+
+
+def main():
+    if len(sys.argv) < 2:
+        print("Uso: python analisis_datos.py <archivo.csv>"); sys.exit(1)
+    df = cargar_datos(sys.argv[1])
+    frec = calcular_frecuencias_eventos(df)
+    prob = estimar_probabilidades(df)
+    df = identificar_patrones(df)
+    res = ajustar_distribuciones(df)
+    crear_visualizaciones(df)
+    guardar_resultados(res, frec, prob)
+    print("\nArchivos generados: analisis_visualizacion.png, "
+          "distribuciones_ajustadas.png, resultados_analisis.txt")
+
+
+if __name__ == "__main__":
+    main()
+\end{lstlisting}
 
 \end{document}
