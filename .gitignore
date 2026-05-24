@@ -43,6 +43,7 @@ Thumbs.db
 .vscode/
 *.sublime-project
 *.sublime-workspace
+.agent/*
 
 # ── Data / generated ────────────────────────────────────────
 *.xlsx
