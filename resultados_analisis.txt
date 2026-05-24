@@ -1,0 +1,52 @@
+============================================================
+RESULTADOS DEL ANÁLISIS DE DATOS
+============================================================
+
+FRECUENCIAS DE EVENTOS:
+----------------------------------------
+  Tareas_Nuevas: 4223
+  Tareas_Completadas: 3173
+  Bugs_QA_Total: 81
+  Dias_Con_Retrabajo: 88
+  Dias_Con_Cambio_Requisitos: 52
+  Dias_Con_Hotfix_Urgente: 27
+  Dias_Con_Saturacion_QA: 66
+
+
+PROBABILIDADES:
+----------------------------------------
+  P(Retrabajo): 0.2411
+  P(Cambio_Requisitos): 0.1425
+  P(Hotfix_Urgente): 0.0740
+  P(Saturacion_QA): 0.1808
+  P(Ausencia_Recurso): 0.1041
+  P(Repriorizacion): 0.1781
+
+
+DISTRIBUCIONES AJUSTADAS:
+----------------------------------------
+
+LLEGADAS:
+  Distribución: Normal
+  Parámetros: (np.float64(11.56986301369863), np.float64(3.384682860095837))
+  Lambda (λ): 11.5699
+
+DESARROLLO:
+  Distribución: Weibull
+  Parámetros: (np.float64(2.1694967745768974), np.float64(6.208225608779351), np.float64(5.630054237754755))
+
+QA:
+  Distribución: Normal
+  Parámetros: (np.float64(4.014027397260274), np.float64(1.1494241318442155))
+
+RETRABAJO_TIEMPO:
+  Distribución: Weibull
+  Parámetros: (np.float64(3.7840597943335377), np.float64(-0.39654178693666814), np.float64(6.206107989276409))
+
+RETRABAJO_TASA:
+  Distribución: Bernoulli
+  Probabilidad (p): 0.2411
+
+BUGS:
+  Distribución: Poisson
+  Lambda (λ): 2.8904
